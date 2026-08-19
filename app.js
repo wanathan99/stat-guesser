@@ -1,8 +1,14 @@
 const POOL_CAP = 250;
-const CLOSE_WINDOW = 25; // rank-distance at which score hits 0
+const MAX_MISS = 100; // miss points cap per question (also used for "not found" guesses); lower total = better
+
+const ROSTER_FILES = {
+  NFL: 'data/nfl_all_players.json',
+  NBA: 'data/nba_all_players.json',
+};
 
 const state = {
   categories: [],   // { key, sport, category, unit, source, leaders: [{rank,name,value}] }
+  rosters: {},       // { NFL: [name, ...], NBA: [name, ...] } — partial, may not cover every letter yet
   selected: new Set(),
   rounds: 10,
   questions: [],
@@ -52,6 +58,15 @@ async function init() {
   } catch (err) {
     el.sportGroups.innerHTML = `<p class="error-text">Couldn't load category data: ${escapeHtml(err.message)}</p>`;
   }
+
+  await Promise.all(Object.entries(ROSTER_FILES).map(async ([sport, path]) => {
+    try {
+      const data = await fetchJSON(path);
+      state.rosters[sport] = data.players || [];
+    } catch (err) {
+      state.rosters[sport] = []; // roster file missing/partial is non-fatal — falls back to category-only suggestions
+    }
+  }));
 }
 
 function fetchJSON(path) {
@@ -145,6 +160,12 @@ function getRanks(pool) {
   return [...new Set(pool.map(p => p.rank))].sort((a, b) => a - b);
 }
 
+function getSuggestionNames(cat) {
+  const roster = state.rosters[cat.sport] || [];
+  const catNames = getPool(cat).map(p => p.name);
+  return [...new Set([...roster, ...catNames])];
+}
+
 function startGame() {
   const catPool = state.categories.filter(c => state.selected.has(c.key));
   state.questions = [];
@@ -171,12 +192,12 @@ function nextQuestion() {
   }
   const { cat, rank } = state.questions[state.currentIndex];
   el.progressLabel.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
-  el.scoreLabel.textContent = `Score: ${state.score}`;
+  el.scoreLabel.textContent = `Total miss: ${state.score} (lower is better)`;
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
   el.questionText.textContent = `Who is the ${ordinal(rank)} most all-time in ${cat.category.toLowerCase()}?`;
   el.guessInput.value = '';
-  el.playerOptions.innerHTML = shuffle(getPool(cat).slice())
-    .map(p => `<option value="${escapeHtml(p.name)}">`)
+  el.playerOptions.innerHTML = shuffle(getSuggestionNames(cat))
+    .map(name => `<option value="${escapeHtml(name)}">`)
     .join('');
   el.resultCard.classList.add('hidden');
   el.guessForm.classList.remove('hidden');
@@ -197,10 +218,12 @@ function submitGuess(guess) {
   const matched = matchPlayer(guess, pool);
 
   let diff = null;
-  let points = 0;
+  let points;
   if (matched) {
     diff = Math.abs(matched.rank - rank);
-    points = Math.max(0, Math.round(100 - (100 / CLOSE_WINDOW) * diff));
+    points = Math.min(MAX_MISS, diff);
+  } else {
+    points = MAX_MISS; // not found = worst-case miss
   }
   state.score += points;
   state.history.push({
@@ -211,21 +234,21 @@ function submitGuess(guess) {
 }
 
 function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }) {
-  el.scoreLabel.textContent = `Score: ${state.score}`;
+  el.scoreLabel.textContent = `Total miss: ${state.score} (lower is better)`;
   el.guessForm.classList.add('hidden');
   el.resultCard.classList.remove('hidden');
 
   let bucket = 'bad';
-  if (points >= 80) bucket = 'good';
-  else if (points >= 40) bucket = 'mid';
+  if (points <= 10) bucket = 'good';
+  else if (points <= 40) bucket = 'mid';
 
   el.resultHeadline.className = `result-headline ${bucket}`;
   if (!matched) {
-    el.resultHeadline.textContent = `"${guess}" not found in the top ${pool.length} — 0 points`;
+    el.resultHeadline.textContent = `"${guess}" not found in the top ${pool.length} — +${points} miss`;
   } else if (diff === 0) {
-    el.resultHeadline.textContent = `Exact! +${points} points`;
+    el.resultHeadline.textContent = `Exact! +0 miss`;
   } else {
-    el.resultHeadline.textContent = `Off by ${diff} spot${diff === 1 ? '' : 's'} — +${points} points`;
+    el.resultHeadline.textContent = `Off by ${diff} spot${diff === 1 ? '' : 's'} — +${points} miss`;
   }
 
   const targetNames = targets.map(t => t.name).join(' / ');
@@ -267,8 +290,8 @@ el.nextBtn.addEventListener('click', nextQuestion);
 function showSummary() {
   el.gameScreen.classList.add('hidden');
   el.summaryScreen.classList.remove('hidden');
-  const max = state.history.length * 100;
-  el.summaryScore.textContent = `${state.score} / ${max}`;
+  const avg = state.score / state.history.length;
+  el.summaryScore.textContent = `${state.score} total miss (avg ${avg.toFixed(1)} spots/question — lower is better)`;
   el.summaryHistory.innerHTML = '';
   state.history.forEach((h, i) => {
     const row = document.createElement('div');

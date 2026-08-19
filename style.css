@@ -262,3 +262,13 @@ h2 { font-size: 1.15rem; margin: 0 0 1rem; }
 .summary-row .pts { color: var(--text-dim); }
 
 .loading { color: var(--text-dim); }
+
+.app-footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--panel-border);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  text-align: center;
+}
