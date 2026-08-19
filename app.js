@@ -15,6 +15,7 @@ const state = {
   currentIndex: -1,
   score: 0,
   history: [],
+  currentSuggestionPool: [],
 };
 
 const el = {
@@ -33,7 +34,7 @@ const el = {
   questionText: document.getElementById('questionText'),
   guessForm: document.getElementById('guessForm'),
   guessInput: document.getElementById('guessInput'),
-  playerOptions: document.getElementById('playerOptions'),
+  suggestList: document.getElementById('suggestList'),
   resultCard: document.getElementById('resultCard'),
   resultHeadline: document.getElementById('resultHeadline'),
   resultDetail: document.getElementById('resultDetail'),
@@ -163,15 +164,10 @@ function getRanks(pool) {
   return [...new Set(pool.map(p => p.rank))].sort((a, b) => a - b);
 }
 
-const SUGGESTION_CAP = 400; // native <datalist> with thousands of options freezes mobile Safari
-
 function getSuggestionNames(cat) {
   const catNames = getPool(cat).map(p => p.name);
-  const catNameSet = new Set(catNames);
-  const roster = (state.rosters[cat.sport] || []).filter(n => !catNameSet.has(n));
-  const remaining = Math.max(0, SUGGESTION_CAP - catNames.length);
-  const rosterSample = shuffle(roster.slice()).slice(0, remaining);
-  return [...catNames, ...rosterSample];
+  const roster = state.rosters[cat.sport] || [];
+  return [...new Set([...catNames, ...roster])];
 }
 
 function startGame() {
@@ -205,9 +201,8 @@ function nextQuestion() {
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
   el.questionText.textContent = `Who is the ${ordinal(rank)} most all-time in ${cat.category.toLowerCase()}?`;
   el.guessInput.value = '';
-  el.playerOptions.innerHTML = shuffle(getSuggestionNames(cat))
-    .map(name => `<option value="${escapeHtml(name)}">`)
-    .join('');
+  state.currentSuggestionPool = getSuggestionNames(cat);
+  hideSuggestions();
   el.resultCard.classList.add('hidden');
   el.guessForm.classList.remove('hidden');
   el.guessInput.focus();
@@ -217,7 +212,58 @@ el.guessForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const guess = el.guessInput.value.trim();
   if (!guess) return;
+  hideSuggestions();
   submitGuess(guess);
+});
+
+// ---------- lightweight autocomplete (no native <datalist> — freezes mobile Safari with large lists) ----------
+
+const SUGGEST_MAX = 8;
+
+function hideSuggestions() {
+  el.suggestList.classList.add('hidden');
+  el.suggestList.innerHTML = '';
+}
+
+function showSuggestions(matches) {
+  if (!matches.length) return hideSuggestions();
+  el.suggestList.innerHTML = matches
+    .map(name => `<div class="suggest-item" data-name="${escapeHtml(name)}">${escapeHtml(name)}</div>`)
+    .join('');
+  el.suggestList.classList.remove('hidden');
+}
+
+el.guessInput.addEventListener('input', () => {
+  const norm = normalizeName(el.guessInput.value);
+  if (!norm) return hideSuggestions();
+
+  const starts = [];
+  const contains = [];
+  for (const name of state.currentSuggestionPool) {
+    const normName = normalizeName(name);
+    if (normName.startsWith(norm)) starts.push(name);
+    else if (normName.includes(norm)) contains.push(name);
+    if (starts.length >= SUGGEST_MAX) break;
+  }
+  const matches = [...starts, ...contains].slice(0, SUGGEST_MAX);
+  showSuggestions(matches);
+});
+
+el.suggestList.addEventListener('mousedown', (e) => {
+  const item = e.target.closest('.suggest-item');
+  if (!item) return;
+  e.preventDefault(); // keep focus in the input instead of blurring to the list
+  el.guessInput.value = item.dataset.name;
+  hideSuggestions();
+  el.guessInput.focus();
+});
+
+el.guessInput.addEventListener('blur', () => {
+  setTimeout(hideSuggestions, 150); // let a suggestion click/mousedown register first
+});
+
+el.guessInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') hideSuggestions();
 });
 
 function submitGuess(guess) {

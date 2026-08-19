@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=3" />
+<link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div id="app" class="app">
@@ -46,8 +46,10 @@
         <div class="question-sport" id="questionSport"></div>
         <h2 id="questionText"></h2>
         <form id="guessForm" autocomplete="off">
-          <input id="guessInput" type="text" placeholder="Type a player name…" list="playerOptions" />
-          <datalist id="playerOptions"></datalist>
+          <div class="guess-input-wrap">
+            <input id="guessInput" type="text" placeholder="Type a player name…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+            <div id="suggestList" class="suggest-list hidden"></div>
+          </div>
           <button type="submit" class="primary-btn">Guess</button>
         </form>
       </div>
@@ -79,6 +81,6 @@
 
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
