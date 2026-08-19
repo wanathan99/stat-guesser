@@ -70,7 +70,7 @@ async function init() {
 }
 
 function fetchJSON(path) {
-  return fetch(path).then(r => {
+  return fetch(path, { cache: 'no-store' }).then(r => {
     if (!r.ok) throw new Error(`${path} (${r.status})`);
     return r.json();
   });

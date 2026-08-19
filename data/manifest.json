@@ -8,11 +8,19 @@
   { "sport": "NFL", "file": "nfl/sacks.json" },
   { "sport": "NFL", "file": "nfl/interceptions.json" },
   { "sport": "NFL", "file": "nfl/total_tds.json" },
+  { "sport": "NFL", "file": "nfl/receptions.json" },
+  { "sport": "NFL", "file": "nfl/pass_completions.json" },
+  { "sport": "NFL", "file": "nfl/fumbles.json" },
+  { "sport": "NFL", "file": "nfl/tackles.json" },
   { "sport": "NBA", "file": "nba/points.json" },
   { "sport": "NBA", "file": "nba/rebounds.json" },
   { "sport": "NBA", "file": "nba/assists.json" },
   { "sport": "NBA", "file": "nba/three_pointers.json" },
   { "sport": "NBA", "file": "nba/steals.json" },
   { "sport": "NBA", "file": "nba/blocks.json" },
-  { "sport": "NBA", "file": "nba/games_played.json" }
+  { "sport": "NBA", "file": "nba/games_played.json" },
+  { "sport": "NBA", "file": "nba/free_throws.json" },
+  { "sport": "NBA", "file": "nba/turnovers.json" },
+  { "sport": "NBA", "file": "nba/personal_fouls.json" },
+  { "sport": "NBA", "file": "nba/triple_doubles.json" }
 ]
