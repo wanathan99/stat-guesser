@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All-Time Leaders</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app" class="app">
+
+    <header class="app-header">
+      <h1>All-Time Leaders</h1>
+      <p class="subtitle">Guess who holds a given all-time rank. The closer your guess, the more points you score.</p>
+    </header>
+
+    <section id="setup" class="screen">
+      <h2>Choose categories</h2>
+      <div class="sport-groups" id="sportGroups">
+        <p class="loading">Loading categories…</p>
+      </div>
+      <div class="setup-actions">
+        <button id="selectAllBtn" class="ghost-btn" type="button">Select all</button>
+        <button id="selectNoneBtn" class="ghost-btn" type="button">Clear</button>
+      </div>
+      <div class="rounds-picker">
+        <label for="roundsInput">Number of questions</label>
+        <input id="roundsInput" type="number" min="1" max="50" value="10" />
+      </div>
+      <button id="startBtn" class="primary-btn" type="button" disabled>Start</button>
+      <p id="setupError" class="error-text"></p>
+    </section>
+
+    <section id="game" class="screen hidden">
+      <div class="hud">
+        <span id="progressLabel">Question 1</span>
+        <span id="scoreLabel">Score: 0</span>
+      </div>
+      <div class="question-card">
+        <div class="question-sport" id="questionSport"></div>
+        <h2 id="questionText"></h2>
+        <form id="guessForm" autocomplete="off">
+          <input id="guessInput" type="text" placeholder="Type a player name…" list="playerOptions" />
+          <datalist id="playerOptions"></datalist>
+          <button type="submit" class="primary-btn">Guess</button>
+        </form>
+      </div>
+      <div id="resultCard" class="result-card hidden">
+        <div id="resultHeadline" class="result-headline"></div>
+        <div id="resultDetail" class="result-detail"></div>
+        <ol id="nearbyList" class="nearby-list"></ol>
+        <button id="nextBtn" class="primary-btn" type="button">Next question</button>
+      </div>
+    </section>
+
+    <section id="summary" class="screen hidden">
+      <h2>Final score</h2>
+      <p id="summaryScore" class="summary-score"></p>
+      <div id="summaryHistory" class="summary-history"></div>
+      <button id="playAgainBtn" class="primary-btn" type="button">Play again</button>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

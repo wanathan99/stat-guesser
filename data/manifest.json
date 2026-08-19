@@ -1,0 +1,18 @@
+[
+  { "sport": "NFL", "file": "nfl/passing_yards.json" },
+  { "sport": "NFL", "file": "nfl/passing_tds.json" },
+  { "sport": "NFL", "file": "nfl/rushing_yards.json" },
+  { "sport": "NFL", "file": "nfl/rushing_tds.json" },
+  { "sport": "NFL", "file": "nfl/receiving_yards.json" },
+  { "sport": "NFL", "file": "nfl/receiving_tds.json" },
+  { "sport": "NFL", "file": "nfl/sacks.json" },
+  { "sport": "NFL", "file": "nfl/interceptions.json" },
+  { "sport": "NFL", "file": "nfl/total_tds.json" },
+  { "sport": "NBA", "file": "nba/points.json" },
+  { "sport": "NBA", "file": "nba/rebounds.json" },
+  { "sport": "NBA", "file": "nba/assists.json" },
+  { "sport": "NBA", "file": "nba/three_pointers.json" },
+  { "sport": "NBA", "file": "nba/steals.json" },
+  { "sport": "NBA", "file": "nba/blocks.json" },
+  { "sport": "NBA", "file": "nba/games_played.json" }
+]
