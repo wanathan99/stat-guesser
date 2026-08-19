@@ -175,7 +175,7 @@ function nextQuestion() {
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
   el.questionText.textContent = `Who is the ${ordinal(rank)} most all-time in ${cat.category.toLowerCase()}?`;
   el.guessInput.value = '';
-  el.playerOptions.innerHTML = getPool(cat)
+  el.playerOptions.innerHTML = shuffle(getPool(cat).slice())
     .map(p => `<option value="${escapeHtml(p.name)}">`)
     .join('');
   el.resultCard.classList.add('hidden');
@@ -362,6 +362,14 @@ function ordinal(n) {
 
 function formatValue(v) {
   return typeof v === 'number' ? v.toLocaleString('en-US') : v;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 function groupBy(arr, fn) {
