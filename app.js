@@ -163,10 +163,15 @@ function getRanks(pool) {
   return [...new Set(pool.map(p => p.rank))].sort((a, b) => a - b);
 }
 
+const SUGGESTION_CAP = 400; // native <datalist> with thousands of options freezes mobile Safari
+
 function getSuggestionNames(cat) {
-  const roster = state.rosters[cat.sport] || [];
   const catNames = getPool(cat).map(p => p.name);
-  return [...new Set([...roster, ...catNames])];
+  const catNameSet = new Set(catNames);
+  const roster = (state.rosters[cat.sport] || []).filter(n => !catNameSet.has(n));
+  const remaining = Math.max(0, SUGGESTION_CAP - catNames.length);
+  const rosterSample = shuffle(roster.slice()).slice(0, remaining);
+  return [...catNames, ...rosterSample];
 }
 
 function startGame() {
