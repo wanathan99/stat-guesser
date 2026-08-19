@@ -426,16 +426,17 @@ h2 {
 .nearby-row.target .name { color: var(--text); font-weight: 700; }
 .nearby-row.target .value { color: var(--text-dim); }
 
-.nearby-row.guessed { box-shadow: inset 0 0 0 1.5px var(--bad); }
-.nearby-row.guessed .rank { color: var(--bad); }
+.nearby-row.guessed { box-shadow: inset 0 0 0 1.5px var(--guess-color, var(--bad)); }
+.nearby-row.guessed .rank { color: var(--guess-color, var(--bad)); }
 .nearby-row.guessed .name { color: var(--text); }
 
 .guess-tag {
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.05em;
-  color: var(--bad);
-  background: var(--bad-soft);
+  color: var(--guess-color, var(--bad));
+  background: var(--surface-2);
+  border: 1px solid var(--guess-color, var(--bad));
   border-radius: 5px;
   padding: 0.15rem 0.4rem;
   margin-left: 0.7rem;

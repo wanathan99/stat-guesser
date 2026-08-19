@@ -290,6 +290,7 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }
     if (isTarget) classes.push('target');
     if (isGuess) classes.push('guessed');
     row.className = classes.join(' ');
+    if (isGuess) row.style.setProperty('--guess-color', bucketColor);
     const tag = isGuess ? '<span class="guess-tag">YOUR GUESS</span>' : '';
     row.innerHTML = `<span class="rank">#${p.rank}</span><span class="name">${escapeHtml(p.name)}${tag}</span><span class="value">${escapeHtml(formatValue(p.value))}</span>`;
     return row;
