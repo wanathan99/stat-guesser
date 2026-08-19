@@ -37,7 +37,10 @@ const el = {
   resultCard: document.getElementById('resultCard'),
   resultHeadline: document.getElementById('resultHeadline'),
   resultDetail: document.getElementById('resultDetail'),
+  meterFill: document.getElementById('meterFill'),
+  meterMarker: document.getElementById('meterMarker'),
   nearbyList: document.getElementById('nearbyList'),
+  progressFill: document.getElementById('progressFill'),
   nextBtn: document.getElementById('nextBtn'),
   summaryScore: document.getElementById('summaryScore'),
   summaryHistory: document.getElementById('summaryHistory'),
@@ -81,7 +84,7 @@ function renderSetup() {
   el.sportGroups.innerHTML = '';
   for (const [sport, cats] of Object.entries(bySport)) {
     const group = document.createElement('div');
-    group.className = 'sport-group';
+    group.className = `sport-group ${sport.toLowerCase()}`;
     const heading = document.createElement('h3');
     heading.textContent = sport;
     group.appendChild(heading);
@@ -191,8 +194,9 @@ function nextQuestion() {
     return;
   }
   const { cat, rank } = state.questions[state.currentIndex];
-  el.progressLabel.textContent = `Question ${state.currentIndex + 1} of ${state.questions.length}`;
-  el.scoreLabel.textContent = `Total miss: ${state.score} (lower is better)`;
+  el.progressLabel.innerHTML = `Question <b>${state.currentIndex + 1}</b> of ${state.questions.length}`;
+  el.scoreLabel.innerHTML = `Total miss <b>${state.score}</b>`;
+  el.progressFill.style.width = `${(state.currentIndex / state.questions.length) * 100}%`;
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
   el.questionText.textContent = `Who is the ${ordinal(rank)} most all-time in ${cat.category.toLowerCase()}?`;
   el.guessInput.value = '';
@@ -233,23 +237,28 @@ function submitGuess(guess) {
   renderResult({ cat, rank, targets, guess, matched, diff, points, pool });
 }
 
+const METER_SCALE = 25; // visual full-scale reference for the distance meter (points beyond this just pin at 100%)
+
 function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }) {
-  el.scoreLabel.textContent = `Total miss: ${state.score} (lower is better)`;
+  el.scoreLabel.innerHTML = `Total miss <b>${state.score}</b>`;
   el.guessForm.classList.add('hidden');
   el.resultCard.classList.remove('hidden');
 
   let bucket = 'bad';
   if (points <= 10) bucket = 'good';
   else if (points <= 40) bucket = 'mid';
+  const bucketColor = `var(--${bucket})`;
 
   el.resultHeadline.className = `result-headline ${bucket}`;
+  let verdict;
   if (!matched) {
-    el.resultHeadline.textContent = `"${guess}" not found in the top ${pool.length} — +${points} miss`;
+    verdict = `"${guess}" not found in the top ${pool.length}`;
   } else if (diff === 0) {
-    el.resultHeadline.textContent = `Exact! +0 miss`;
+    verdict = 'Exact!';
   } else {
-    el.resultHeadline.textContent = `Off by ${diff} spot${diff === 1 ? '' : 's'} — +${points} miss`;
+    verdict = `Off by ${diff} spot${diff === 1 ? '' : 's'}`;
   }
+  el.resultHeadline.innerHTML = `<span>${escapeHtml(verdict)}</span><span class="miss-num">+${points}</span>`;
 
   const targetNames = targets.map(t => t.name).join(' / ');
   const targetValueStr = targets.length ? `${formatValue(targets[0].value)} ${cat.unit}` : '';
@@ -261,6 +270,12 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }
   }
   el.resultDetail.innerHTML = detail;
 
+  const meterPct = Math.min(100, (points / METER_SCALE) * 100);
+  el.meterFill.style.width = `${meterPct}%`;
+  el.meterFill.style.background = bucketColor;
+  el.meterMarker.style.left = `${meterPct}%`;
+  el.meterMarker.style.background = bucketColor;
+
   el.nearbyList.innerHTML = '';
   const maxRank = Math.max(...pool.map(p => p.rank));
   const lo = Math.max(1, rank - 3);
@@ -268,20 +283,42 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }
   const nearby = pool
     .filter(p => p.rank >= lo && p.rank <= hi)
     .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name));
-  for (const p of nearby) {
-    const li = document.createElement('li');
-    const classes = [];
-    if (p.rank === rank) classes.push('target');
-    if (matched && p.rank === matched.rank) classes.push('guessed');
-    li.className = classes.join(' ');
-    li.innerHTML = `<span class="rank">#${p.rank}</span><span>${escapeHtml(p.name)}</span><span>${escapeHtml(formatValue(p.value))}</span>`;
-    el.nearbyList.appendChild(li);
+
+  const makeRow = (p, { isTarget = false, isGuess = false } = {}) => {
+    const row = document.createElement('div');
+    const classes = ['nearby-row'];
+    if (isTarget) classes.push('target');
+    if (isGuess) classes.push('guessed');
+    row.className = classes.join(' ');
+    const tag = isGuess ? '<span class="guess-tag">YOUR GUESS</span>' : '';
+    row.innerHTML = `<span class="rank">#${p.rank}</span><span class="name">${escapeHtml(p.name)}${tag}</span><span class="value">${escapeHtml(formatValue(p.value))}</span>`;
+    return row;
+  };
+
+  const guessAbove = matched && matched.rank < lo;
+  const guessBelow = matched && matched.rank > hi;
+
+  if (guessAbove) {
+    el.nearbyList.appendChild(makeRow(matched, { isGuess: true }));
+    const divider = document.createElement('div');
+    divider.className = 'nearby-divider';
+    divider.textContent = 'closer to the top';
+    el.nearbyList.appendChild(divider);
   }
-  if (matched && (matched.rank < lo || matched.rank > hi)) {
-    const li = document.createElement('li');
-    li.className = 'guessed';
-    li.innerHTML = `<span class="rank">#${matched.rank}</span><span>${escapeHtml(matched.name)}</span><span>${escapeHtml(formatValue(matched.value))}</span>`;
-    el.nearbyList.appendChild(li);
+
+  for (const p of nearby) {
+    el.nearbyList.appendChild(makeRow(p, {
+      isTarget: p.rank === rank,
+      isGuess: matched && p.rank === matched.rank,
+    }));
+  }
+
+  if (guessBelow) {
+    const divider = document.createElement('div');
+    divider.className = 'nearby-divider';
+    divider.textContent = 'further down';
+    el.nearbyList.appendChild(divider);
+    el.nearbyList.appendChild(makeRow(matched, { isGuess: true }));
   }
 }
 

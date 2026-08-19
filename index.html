@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>All-Time Leaders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -32,9 +35,12 @@
     </section>
 
     <section id="game" class="screen hidden">
-      <div class="hud">
-        <span id="progressLabel">Question 1</span>
-        <span id="scoreLabel">Score: 0</span>
+      <div>
+        <div class="hud">
+          <span id="progressLabel">Question 1</span>
+          <span id="scoreLabel">Score: 0</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       </div>
       <div class="question-card">
         <div class="question-sport" id="questionSport"></div>
@@ -48,7 +54,14 @@
       <div id="resultCard" class="result-card hidden">
         <div id="resultHeadline" class="result-headline"></div>
         <div id="resultDetail" class="result-detail"></div>
-        <ol id="nearbyList" class="nearby-list"></ol>
+        <div class="meter-wrap">
+          <div class="meter-labels"><span>0</span><span>closer &rarr; farther</span><span>25+</span></div>
+          <div class="meter-track">
+            <div class="meter-fill" id="meterFill"></div>
+            <div class="meter-marker" id="meterMarker"></div>
+          </div>
+        </div>
+        <div id="nearbyList" class="nearby-list"></div>
         <button id="nextBtn" class="primary-btn" type="button">Next question</button>
       </div>
     </section>
