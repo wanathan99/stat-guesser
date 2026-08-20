@@ -406,7 +406,7 @@ h2 {
   position: relative;
   height: 8px;
   border-radius: 4px;
-  background: linear-gradient(90deg, var(--good) 0%, var(--good) 10%, var(--mid) 10%, var(--mid) 40%, var(--bad) 40%, var(--bad) 100%);
+  background: linear-gradient(90deg, var(--good) 0%, var(--good) 25%, var(--mid) 25%, var(--mid) 50%, var(--bad) 50%, var(--bad) 100%);
   opacity: 0.28;
 }
 .meter-fill {

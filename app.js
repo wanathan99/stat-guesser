@@ -1,8 +1,8 @@
 const POOL_CAP = 250;
 const SHALLOW_QUESTION_CAP = 150; // categories with data only to ~250 get asked from a smaller range, to keep guesses further from the edge of what we can score accurately
 const MAX_MISS = 100; // miss points cap per question (also used for "not found" guesses); lower total = better
-const MISS_GOOD_MAX = 10; // miss <= this = "good" (green)
-const MISS_MID_MAX = 40;  // miss <= this = "mid" (amber); above = "bad" (red)
+const MISS_GOOD_MAX = 25; // miss <= this = "good" (green)
+const MISS_MID_MAX = 50;  // miss <= this = "mid" (amber); above = "bad" (red)
 
 const ROSTER_FILES = {
   NFL: 'data/nfl_all_players.json',
