@@ -1,7 +1,7 @@
 {
   "sport": "NBA",
   "category": "3-Pointers Made",
-  "unit": "three pointers made",
+  "unit": "three-pointers",
   "source": "https://www.nba.com/stats/alltime-leaders",
   "leaders": [
     {

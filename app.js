@@ -180,7 +180,7 @@ function isDeepCategory(cat) {
 
 function getQuestionPool(cat) {
   const cap = isDeepCategory(cat) ? POOL_CAP : SHALLOW_QUESTION_CAP;
-  return cat.leaders.filter(p => p.rank <= cap);
+  return cat.leaders.filter(p => p.rank > 1 && p.rank <= cap); // rank 1 is too well-known to be a fun question
 }
 
 function getRanks(pool) {
@@ -327,7 +327,7 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool, 
   let verdict;
   if (!matched) {
     verdict = matchPoolSize > pool.length
-      ? `"${guess}" isn't a recognized ${cat.sport} ${cat.category.toLowerCase()} name`
+      ? `"${guess}" doesn't match any recorded ${cat.sport} player`
       : `"${guess}" not found in the top ${pool.length}`;
   } else if (diff === 0) {
     verdict = 'Exact!';
