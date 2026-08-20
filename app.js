@@ -1,4 +1,5 @@
 const POOL_CAP = 250;
+const SHALLOW_QUESTION_CAP = 150; // categories with data only to ~250 get asked from a smaller range, to keep guesses further from the edge of what we can score accurately
 const MAX_MISS = 100; // miss points cap per question (also used for "not found" guesses); lower total = better
 
 const ROSTER_FILES = {
@@ -107,7 +108,7 @@ function renderSetup() {
       label.appendChild(span);
       const count = document.createElement('span');
       count.className = 'count';
-      const maxRank = Math.max(...getPool(cat).map(p => p.rank));
+      const maxRank = Math.max(...getQuestionPool(cat).map(p => p.rank));
       count.textContent = `top ${maxRank}`;
       label.appendChild(count);
       grid.appendChild(label);
@@ -160,6 +161,28 @@ function getPool(cat) {
   return cat.leaders.filter(p => p.rank <= POOL_CAP);
 }
 
+// Questions only ever ask about ranks <= POOL_CAP (getPool), but some categories now carry
+// far deeper data than that (e.g. NBA categories sourced from NBA.com go thousands deep).
+// Use the full list for matching a *guess* so a near-boundary guess (e.g. asked about 230th,
+// guessed someone who's actually 260th) gets scored on real distance instead of an automatic
+// "not found" max-miss just because 260 is outside the askable range.
+function getMatchPool(cat) {
+  return cat.leaders;
+}
+
+// "Deep" = we have real ranked data past the usual top-250 cutoff (currently the 9 NBA
+// categories sourced from NBA.com's full all-time grid). Everything else only has data to
+// ~250, so we ask from a smaller range (SHALLOW_QUESTION_CAP) to stay further from the edge
+// where an out-of-pool guess can't be scored on real distance.
+function isDeepCategory(cat) {
+  return cat.leaders.some(p => p.rank > POOL_CAP);
+}
+
+function getQuestionPool(cat) {
+  const cap = isDeepCategory(cat) ? POOL_CAP : SHALLOW_QUESTION_CAP;
+  return cat.leaders.filter(p => p.rank <= cap);
+}
+
 function getRanks(pool) {
   return [...new Set(pool.map(p => p.rank))].sort((a, b) => a - b);
 }
@@ -175,7 +198,7 @@ function startGame() {
   state.questions = [];
   for (let i = 0; i < state.rounds; i++) {
     const cat = catPool[Math.floor(Math.random() * catPool.length)];
-    const ranks = getRanks(getPool(cat));
+    const ranks = getRanks(getQuestionPool(cat));
     const rank = ranks[Math.floor(Math.random() * ranks.length)];
     state.questions.push({ cat, rank });
   }
@@ -270,7 +293,7 @@ function submitGuess(guess) {
   const { cat, rank } = state.questions[state.currentIndex];
   const pool = getPool(cat);
   const targets = pool.filter(p => p.rank === rank);
-  const matched = matchPlayer(guess, pool);
+  const matched = matchPlayer(guess, getMatchPool(cat));
 
   let diff = null;
   let points;
@@ -285,12 +308,12 @@ function submitGuess(guess) {
     category: cat.category, sport: cat.sport, rank, targets, guess, matched, diff, points,
   });
 
-  renderResult({ cat, rank, targets, guess, matched, diff, points, pool });
+  renderResult({ cat, rank, targets, guess, matched, diff, points, pool, matchPoolSize: getMatchPool(cat).length });
 }
 
 const METER_SCALE = 25; // visual full-scale reference for the distance meter (points beyond this just pin at 100%)
 
-function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }) {
+function renderResult({ cat, rank, targets, guess, matched, diff, points, pool, matchPoolSize }) {
   el.scoreLabel.innerHTML = `Total miss <b>${state.score}</b>`;
   el.guessForm.classList.add('hidden');
   el.resultCard.classList.remove('hidden');
@@ -303,7 +326,9 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool }
   el.resultHeadline.className = `result-headline ${bucket}`;
   let verdict;
   if (!matched) {
-    verdict = `"${guess}" not found in the top ${pool.length}`;
+    verdict = matchPoolSize > pool.length
+      ? `"${guess}" isn't a recognized ${cat.sport} ${cat.category.toLowerCase()} name`
+      : `"${guess}" not found in the top ${pool.length}`;
   } else if (diff === 0) {
     verdict = 'Exact!';
   } else {
