@@ -76,6 +76,138 @@ h2 {
 
 .screen { display: flex; flex-direction: column; gap: 1.25rem; }
 
+/* ---------- daily challenge ---------- */
+
+.daily-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+}
+
+.daily-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1.2rem;
+}
+.daily-head .eyebrow {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.daily-head .date {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+
+.diff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 1rem 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.diff-card:hover { transform: translateY(-1px); }
+.diff-card.done { cursor: default; }
+.diff-card.done:hover { transform: none; }
+
+.diff-card.easy { border-color: rgba(52,201,141,0.35); }
+.diff-card.easy:hover { border-color: var(--good); }
+.diff-card.medium { border-color: rgba(227,179,65,0.35); }
+.diff-card.medium:hover { border-color: var(--mid); }
+.diff-card.hard { border-color: rgba(239,91,91,0.35); }
+.diff-card.hard:hover { border-color: var(--bad); }
+.diff-card.done:hover { border-color: var(--border); }
+
+.diff-label {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.diff-card.easy .diff-label { color: var(--good); }
+.diff-card.medium .diff-label { color: var(--mid); }
+.diff-card.hard .diff-label { color: var(--bad); }
+
+.diff-desc {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.diff-meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-top: 0.1rem;
+}
+
+.diff-status {
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.diff-status.done { color: var(--good); }
+.diff-status .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--good);
+}
+
+.diff-play-btn {
+  margin-top: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 0.4rem 0;
+  text-align: center;
+}
+.diff-card.easy:hover .diff-play-btn { background: var(--good-soft); border-color: var(--good); }
+.diff-card.medium:hover .diff-play-btn { background: var(--mid-soft); border-color: var(--mid); }
+.diff-card.hard:hover .diff-play-btn { background: var(--bad-soft); border-color: var(--bad); }
+
+.divider-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.divider-row::before, .divider-row::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.note {
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 0.8rem;
+  margin: -0.6rem 0 0;
+}
+
 /* ---------- setup ---------- */
 
 .sport-groups {

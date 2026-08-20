@@ -4,6 +4,16 @@ const MAX_MISS = 100; // miss points cap per question (also used for "not found"
 const MISS_GOOD_MAX = 25; // miss <= this = "good" (green)
 const MISS_MID_MAX = 50;  // miss <= this = "mid" (amber); above = "bad" (red)
 
+const DAILY_ROUNDS = 10;
+const DAILY_EASY_MAX = 30;   // rank <= this = "easy"
+const DAILY_MEDIUM_MAX = 100; // rank <= this (and > easy max) = "medium"; above = "hard"
+const DAILY_STORAGE_PREFIX = 'statguesser-daily-';
+const DAILY_META = {
+  easy: { label: 'Easy', desc: 'Household names.' },
+  medium: { label: 'Medium', desc: 'Solid stars.' },
+  hard: { label: 'Hard', desc: 'Deep cuts & role players.' },
+};
+
 const ROSTER_FILES = {
   NFL: 'data/nfl_all_players.json',
   NBA: 'data/nba_all_players.json',
@@ -19,6 +29,7 @@ const state = {
   score: 0,
   history: [],
   currentSuggestionPool: [],
+  daily: null, // 'easy' | 'medium' | 'hard' | null (Quick Play)
 };
 
 const el = {
@@ -49,6 +60,8 @@ const el = {
   summaryScore: document.getElementById('summaryScore'),
   summaryHistory: document.getElementById('summaryHistory'),
   playAgainBtn: document.getElementById('playAgainBtn'),
+  dailyDate: document.getElementById('dailyDate'),
+  diffGrid: document.getElementById('diffGrid'),
 };
 
 init();
@@ -62,6 +75,7 @@ async function init() {
     }));
     state.categories = loaded.filter(c => Array.isArray(c.leaders) && c.leaders.length > 0);
     renderSetup();
+    renderDailyCard();
   } catch (err) {
     el.sportGroups.innerHTML = `<p class="error-text">Couldn't load category data: ${escapeHtml(err.message)}</p>`;
   }
@@ -195,22 +209,118 @@ function getSuggestionNames(cat) {
   return [...new Set([...catNames, ...roster])];
 }
 
-function startGame() {
-  const catPool = state.categories.filter(c => state.selected.has(c.key));
-  state.questions = [];
-  for (let i = 0; i < state.rounds; i++) {
-    const cat = catPool[Math.floor(Math.random() * catPool.length)];
-    const ranks = getRanks(getQuestionPool(cat));
-    const rank = ranks[Math.floor(Math.random() * ranks.length)];
-    state.questions.push({ cat, rank });
-  }
+function beginRound(questions, dailyDifficulty) {
+  state.questions = questions;
   state.currentIndex = -1;
   state.score = 0;
   state.history = [];
+  state.daily = dailyDifficulty || null;
   el.setupScreen.classList.add('hidden');
   el.summaryScreen.classList.add('hidden');
   el.gameScreen.classList.remove('hidden');
   nextQuestion();
+}
+
+function startGame() {
+  const catPool = state.categories.filter(c => state.selected.has(c.key));
+  const questions = [];
+  for (let i = 0; i < state.rounds; i++) {
+    const cat = catPool[Math.floor(Math.random() * catPool.length)];
+    const ranks = getRanks(getQuestionPool(cat));
+    const rank = ranks[Math.floor(Math.random() * ranks.length)];
+    questions.push({ cat, rank });
+  }
+  beginRound(questions, null);
+}
+
+// ---------- daily challenge ----------
+// Same 3 fixed rounds (easy/medium/hard) for everyone on a given calendar day, via a
+// deterministic seeded RNG (date + difficulty as the seed) instead of Math.random().
+
+function makeSeededRandom(seedStr) {
+  let h = 1779033703 ^ seedStr.length;
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  let seed = h >>> 0;
+  return function next() {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function getTodayDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function difficultyPool(cat, difficulty) {
+  const pool = getQuestionPool(cat);
+  if (difficulty === 'easy') return pool.filter(p => p.rank <= DAILY_EASY_MAX);
+  if (difficulty === 'medium') return pool.filter(p => p.rank > DAILY_EASY_MAX && p.rank <= DAILY_MEDIUM_MAX);
+  return pool.filter(p => p.rank > DAILY_MEDIUM_MAX); // hard
+}
+
+function buildDailyQuestions(difficulty) {
+  const rng = makeSeededRandom(`${getTodayDateStr()}|${difficulty}`);
+  const questions = [];
+  for (let i = 0; i < DAILY_ROUNDS; i++) {
+    const cat = state.categories[Math.floor(rng() * state.categories.length)];
+    let pool = difficultyPool(cat, difficulty);
+    if (pool.length === 0) pool = getQuestionPool(cat); // sparse category fallback — still a valid question, just off-tier
+    const ranks = getRanks(pool);
+    const rank = ranks[Math.floor(rng() * ranks.length)];
+    questions.push({ cat, rank });
+  }
+  return questions;
+}
+
+function startDaily(difficulty) {
+  beginRound(buildDailyQuestions(difficulty), difficulty);
+}
+
+function getDailyResult(difficulty) {
+  try {
+    const raw = localStorage.getItem(DAILY_STORAGE_PREFIX + difficulty);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    return data.date === getTodayDateStr() ? data : null; // stale (from a previous day) = not completed
+  } catch (err) {
+    return null;
+  }
+}
+
+function saveDailyResult(difficulty, score) {
+  try {
+    localStorage.setItem(DAILY_STORAGE_PREFIX + difficulty, JSON.stringify({ date: getTodayDateStr(), score }));
+  } catch (err) {
+    // localStorage unavailable (e.g. private browsing) — non-fatal, completion just won't persist
+  }
+}
+
+function renderDailyCard() {
+  el.dailyDate.textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  el.diffGrid.innerHTML = '';
+  for (const difficulty of ['easy', 'medium', 'hard']) {
+    const meta = DAILY_META[difficulty];
+    const result = getDailyResult(difficulty);
+    const card = document.createElement('div');
+    card.className = `diff-card ${difficulty}${result ? ' done' : ''}`;
+    const status = result
+      ? `<div class="diff-status done"><span class="dot"></span>Completed &middot; ${result.score} pts</div>`
+      : `<div class="diff-play-btn">Play</div>`;
+    card.innerHTML = `
+      <span class="diff-label">${meta.label.toUpperCase()}</span>
+      <span class="diff-desc">${escapeHtml(meta.desc)}</span>
+      <span class="diff-meta">${DAILY_ROUNDS} questions</span>
+      ${status}
+    `;
+    if (!result) card.addEventListener('click', () => startDaily(difficulty));
+    el.diffGrid.appendChild(card);
+  }
 }
 
 function nextQuestion() {
@@ -220,7 +330,8 @@ function nextQuestion() {
     return;
   }
   const { cat, rank } = state.questions[state.currentIndex];
-  el.progressLabel.innerHTML = `Question <b>${state.currentIndex + 1}</b> of ${state.questions.length}`;
+  const dailyTag = state.daily ? `DAILY &middot; ${DAILY_META[state.daily].label.toUpperCase()} — ` : '';
+  el.progressLabel.innerHTML = `${dailyTag}Question <b>${state.currentIndex + 1}</b> of ${state.questions.length}`;
   el.scoreLabel.innerHTML = `Total miss <b>${state.score}</b>`;
   el.progressFill.style.width = `${(state.currentIndex / state.questions.length) * 100}%`;
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
@@ -415,11 +526,18 @@ function showSummary() {
     row.innerHTML = `<span>${i + 1}. ${escapeHtml(h.sport)} ${escapeHtml(h.category)} — ${ordinal(h.rank)}: <b>${escapeHtml(targetNames)}</b> · you said ${escapeHtml(guessedName)}</span><span class="pts">+${h.points}</span>`;
     el.summaryHistory.appendChild(row);
   });
+
+  if (state.daily) {
+    saveDailyResult(state.daily, state.score);
+    renderDailyCard();
+  }
 }
 
 el.playAgainBtn.addEventListener('click', () => {
+  state.daily = null;
   el.summaryScreen.classList.add('hidden');
   el.setupScreen.classList.remove('hidden');
+  renderDailyCard();
 });
 
 // ---------- matching ----------

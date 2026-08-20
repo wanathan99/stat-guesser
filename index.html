@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <div id="app" class="app">
@@ -18,6 +18,17 @@
     </header>
 
     <section id="setup" class="screen">
+      <div class="daily-card" id="dailyCard">
+        <div class="daily-head">
+          <span class="eyebrow">Daily Challenge</span>
+          <span class="date" id="dailyDate"></span>
+        </div>
+        <div class="diff-grid" id="diffGrid"></div>
+      </div>
+      <p class="note">Same three lists for everyone today — new ones tomorrow.</p>
+
+      <div class="divider-row">or play your own mix</div>
+
       <h2>Choose categories</h2>
       <div class="sport-groups" id="sportGroups">
         <p class="loading">Loading categories…</p>
@@ -81,6 +92,6 @@
 
   </div>
 
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
