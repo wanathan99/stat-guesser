@@ -1,6 +1,8 @@
 const POOL_CAP = 250;
 const SHALLOW_QUESTION_CAP = 150; // categories with data only to ~250 get asked from a smaller range, to keep guesses further from the edge of what we can score accurately
 const MAX_MISS = 100; // miss points cap per question (also used for "not found" guesses); lower total = better
+const MISS_GOOD_MAX = 10; // miss <= this = "good" (green)
+const MISS_MID_MAX = 40;  // miss <= this = "mid" (amber); above = "bad" (red)
 
 const ROSTER_FILES = {
   NFL: 'data/nfl_all_players.json',
@@ -311,16 +313,14 @@ function submitGuess(guess) {
   renderResult({ cat, rank, targets, guess, matched, diff, points, pool, matchPoolSize: getMatchPool(cat).length });
 }
 
-const METER_SCALE = 25; // visual full-scale reference for the distance meter (points beyond this just pin at 100%)
-
 function renderResult({ cat, rank, targets, guess, matched, diff, points, pool, matchPoolSize }) {
   el.scoreLabel.innerHTML = `Total miss <b>${state.score}</b>`;
   el.guessForm.classList.add('hidden');
   el.resultCard.classList.remove('hidden');
 
   let bucket = 'bad';
-  if (points <= 10) bucket = 'good';
-  else if (points <= 40) bucket = 'mid';
+  if (points <= MISS_GOOD_MAX) bucket = 'good';
+  else if (points <= MISS_MID_MAX) bucket = 'mid';
   const bucketColor = `var(--${bucket})`;
 
   el.resultHeadline.className = `result-headline ${bucket}`;
@@ -346,7 +346,7 @@ function renderResult({ cat, rank, targets, guess, matched, diff, points, pool, 
   }
   el.resultDetail.innerHTML = detail;
 
-  const meterPct = Math.min(100, (points / METER_SCALE) * 100);
+  const meterPct = (points / MAX_MISS) * 100; // points is already capped at MAX_MISS, so this never exceeds 100
   el.meterFill.style.width = `${meterPct}%`;
   el.meterFill.style.background = bucketColor;
   el.meterMarker.style.left = `${meterPct}%`;
