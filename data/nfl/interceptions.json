@@ -1,7 +1,7 @@
 {
   "sport": "NFL",
-  "category": "Interceptions",
-  "unit": "interceptions",
+  "category": "Interceptions Caught",
+  "unit": "interceptions caught",
   "source": "https://www.pro-football-reference.com/leaders/def_int_career.htm",
   "leaders": [
     {

@@ -30,6 +30,7 @@ const state = {
   history: [],
   currentSuggestionPool: [],
   daily: null, // 'easy' | 'medium' | 'hard' | null (Quick Play)
+  answered: false, // guards against a double-fired submit (e.g. a fast double-tap) recording the same question twice
 };
 
 const el = {
@@ -126,8 +127,7 @@ function renderSetup() {
       label.appendChild(span);
       const count = document.createElement('span');
       count.className = 'count';
-      const maxRank = Math.max(...getQuestionPool(cat).map(p => p.rank));
-      count.textContent = `top ${maxRank}`;
+      count.textContent = isDeepCategory(cat) ? `top ${POOL_CAP}` : `top ${SHALLOW_QUESTION_CAP}`;
       label.appendChild(count);
       grid.appendChild(label);
     }
@@ -190,8 +190,9 @@ function getMatchPool(cat) {
 
 // "Deep" = we have real ranked data past the usual top-250 cutoff (currently the 9 NBA
 // categories sourced from NBA.com's full all-time grid). Everything else only has data to
-// ~250, so we ask from a smaller range (SHALLOW_QUESTION_CAP) to stay further from the edge
-// where an out-of-pool guess can't be scored on real distance.
+// ~250 (whatever its exact max happens to land on given ties — 236, 247, 250, doesn't matter),
+// so we ask from a smaller, consistent range (SHALLOW_QUESTION_CAP) rather than each shallow
+// category having its own odd cutoff.
 function isDeepCategory(cat) {
   return cat.leaders.some(p => p.rank > POOL_CAP);
 }
@@ -223,15 +224,41 @@ function beginRound(questions, dailyDifficulty) {
   nextQuestion();
 }
 
+// Draws `count` questions via `pickCandidate()`, retrying on a (category, rank) repeat so
+// the same question can't show up twice in one round. `minCategoryGap` (Daily Challenge only)
+// also blocks the same category from recurring within that many questions of its last use —
+// two questions from the same list too close together let you infer too much about the
+// ranking between them. Caps retries per slot so a very small pool (e.g. a sparse difficulty
+// tier) can't hang — it just allows the repeat at that point.
+function pickUniqueQuestions(count, pickCandidate, { minCategoryGap = 0 } = {}) {
+  const used = new Set();
+  const questions = [];
+  for (let i = 0; i < count; i++) {
+    let candidate;
+    let attempts = 0;
+    do {
+      candidate = pickCandidate();
+      attempts++;
+    } while (
+      attempts < 200 && (
+        used.has(`${candidate.cat.key}|${candidate.rank}`) ||
+        (minCategoryGap > 0 && questions.slice(-minCategoryGap).some(q => q.cat.key === candidate.cat.key))
+      )
+    );
+    used.add(`${candidate.cat.key}|${candidate.rank}`);
+    questions.push(candidate);
+  }
+  return questions;
+}
+
 function startGame() {
   const catPool = state.categories.filter(c => state.selected.has(c.key));
-  const questions = [];
-  for (let i = 0; i < state.rounds; i++) {
+  const questions = pickUniqueQuestions(state.rounds, () => {
     const cat = catPool[Math.floor(Math.random() * catPool.length)];
     const ranks = getRanks(getQuestionPool(cat));
     const rank = ranks[Math.floor(Math.random() * ranks.length)];
-    questions.push({ cat, rank });
-  }
+    return { cat, rank };
+  });
   beginRound(questions, null);
 }
 
@@ -268,15 +295,14 @@ function difficultyPool(cat, difficulty) {
 
 function buildDailyQuestions(difficulty) {
   const rng = makeSeededRandom(`${getTodayDateStr()}|${difficulty}`);
-  const questions = [];
-  for (let i = 0; i < DAILY_ROUNDS; i++) {
+  const questions = pickUniqueQuestions(DAILY_ROUNDS, () => {
     const cat = state.categories[Math.floor(rng() * state.categories.length)];
     let pool = difficultyPool(cat, difficulty);
     if (pool.length === 0) pool = getQuestionPool(cat); // sparse category fallback — still a valid question, just off-tier
     const ranks = getRanks(pool);
     const rank = ranks[Math.floor(rng() * ranks.length)];
-    questions.push({ cat, rank });
-  }
+    return { cat, rank };
+  }, { minCategoryGap: 3 });
   return questions;
 }
 
@@ -331,6 +357,7 @@ function nextQuestion() {
     showSummary();
     return;
   }
+  state.answered = false;
   const { cat, rank } = state.questions[state.currentIndex];
   const dailyTag = state.daily ? `DAILY &middot; ${DAILY_META[state.daily].label.toUpperCase()} — ` : '';
   el.progressLabel.innerHTML = `${dailyTag}Question <b>${state.currentIndex + 1}</b> of ${state.questions.length}`;
@@ -339,7 +366,7 @@ function nextQuestion() {
   el.questionSport.textContent = `${cat.sport} — ${cat.category}`;
   el.questionText.textContent = `Who is the ${ordinal(rank)} most all-time in ${cat.category.toLowerCase()}?`;
   el.guessInput.value = '';
-  state.currentSuggestionPool = getSuggestionNames(cat);
+  state.currentSuggestionPool = shuffle(getSuggestionNames(cat)); // unshuffled would leak rank order through suggestion order
   hideSuggestions();
   el.resultCard.classList.add('hidden');
   el.guessForm.classList.remove('hidden');
@@ -348,8 +375,10 @@ function nextQuestion() {
 
 el.guessForm.addEventListener('submit', (e) => {
   e.preventDefault();
+  if (state.answered) return; // already-queued duplicate submit (e.g. a fast double-tap) — ignore it
   const guess = el.guessInput.value.trim();
   if (!guess) return;
+  state.answered = true;
   hideSuggestions();
   submitGuess(guess);
 });

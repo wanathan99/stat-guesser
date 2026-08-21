@@ -7,6 +7,7 @@
   { "sport": "NFL", "file": "nfl/receiving_tds.json" },
   { "sport": "NFL", "file": "nfl/sacks.json" },
   { "sport": "NFL", "file": "nfl/interceptions.json" },
+  { "sport": "NFL", "file": "nfl/interceptions_thrown.json" },
   { "sport": "NFL", "file": "nfl/total_tds.json" },
   { "sport": "NFL", "file": "nfl/receptions.json" },
   { "sport": "NFL", "file": "nfl/pass_completions.json" },
