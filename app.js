@@ -62,6 +62,8 @@ const el = {
   playAgainBtn: document.getElementById('playAgainBtn'),
   dailyDate: document.getElementById('dailyDate'),
   diffGrid: document.getElementById('diffGrid'),
+  shareBtn: document.getElementById('shareBtn'),
+  shareBtnLabel: document.getElementById('shareBtnLabel'),
 };
 
 init();
@@ -530,8 +532,51 @@ function showSummary() {
   if (state.daily) {
     saveDailyResult(state.daily, state.score);
     renderDailyCard();
+    el.shareBtn.classList.remove('hidden');
+  } else {
+    el.shareBtn.classList.add('hidden');
   }
 }
+
+function buildShareText() {
+  const squares = state.history.map(h => {
+    if (!h.matched) return '⬛';
+    if (h.points <= MISS_GOOD_MAX) return '🟩';
+    if (h.points <= MISS_MID_MAX) return '🟨';
+    return '🟥';
+  }).join('');
+
+  const misses = state.history.map(h => h.points);
+  const best = Math.min(...misses);
+  const worst = Math.max(...misses);
+  const avg = state.score / state.history.length;
+
+  const meta = DAILY_META[state.daily];
+  const diffSquare = { easy: '🟩', medium: '🟨', hard: '🟥' }[state.daily];
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const link = `${location.origin}${location.pathname}`;
+
+  return [
+    `All-Time Leaders — Daily ${diffSquare} ${meta.label}`,
+    dateStr,
+    '',
+    squares,
+    `${state.score} pts · avg ${avg.toFixed(1)} · best ${best} · worst ${worst}`,
+    '',
+    `play: ${link}`,
+  ].join('\n');
+}
+
+el.shareBtn.addEventListener('click', async () => {
+  const text = buildShareText();
+  try {
+    await navigator.clipboard.writeText(text);
+    el.shareBtnLabel.textContent = 'Copied!';
+  } catch (err) {
+    el.shareBtnLabel.textContent = 'Copy failed';
+  }
+  setTimeout(() => { el.shareBtnLabel.textContent = 'Share Result'; }, 1500);
+});
 
 el.playAgainBtn.addEventListener('click', () => {
   state.daily = null;
